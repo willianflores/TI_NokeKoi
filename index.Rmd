@@ -1,0 +1,571 @@
+---
+title: "Monitoramento de Queimadas e Desmatamento: TI Campinas/Katukina"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+    theme:
+      version: 4
+      bootswatch: journal
+      base_font: !expr bslib::font_google("Prompt")
+      code_font: !expr bslib::font_google("JetBrains Mono")
+---
+
+```{r setup, include = FALSE}
+## Check that all required packages are present
+# List of packages for session
+.packages = c("flexdashboard","shiny","leaps","jsonlite","maptools","ggplot2"
+              ,"tidyverse","purrr","leaflet","plotly", "data.table","lubridate"
+              ,"sf", "DBI", "RPostgreSQL", "geojsonsf", "stars")
+
+# Install CRAN packages (if not already installed)
+.inst <- .packages %in% installed.packages()
+if(length(.packages[!.inst]) > 0) install.packages(.packages[!.inst])
+
+# Load packages into session 
+lapply(.packages, require, character.only=TRUE)
+
+## Load TI Boundary
+# Projections
+epsg_4326 = st_crs(4326)
+proj_area = st_crs("+proj=aea +lat_1=10 +lat_2=-40 +lat_0=-25 +lon_0=-50 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs ")
+proj_dist = st_crs("EPSG:5880")
+
+
+# DB Conection
+con <- RPostgreSQL::dbConnect(
+  "PostgreSQL",
+  host     = "localhost",
+  port     = 5432, 
+  dbname   = "db_environmentalinfo",
+  user     = "willianflores",
+  password = "soil7525"
+
+)
+
+query <- paste(
+  "SELECT *
+  FROM sc_tis.tb_tis_poligonais_homol
+  WHERE terrai_nom = 'Campinas/Katukina';"
+)
+
+nokekoi_ti <- st_read(
+  con, 
+  query = query
+)
+
+RPostgreSQL::dbDisconnect(con)
+
+nokekoi_ti_buffer <- nokekoi_ti %>%
+  st_transform(
+      crs = proj_area
+    ) %>%
+  st_buffer(
+    dist = 10000
+  ) %>%
+  st_transform(
+    crs = epsg_4326
+  ) %>% 
+  st_difference(
+    y = nokekoi_ti
+  )
+
+nokekoi_ti_buffer_boundary <- rbind(
+  nokekoi_ti,
+  select(nokekoi_ti_buffer, 1:19, 39 )
+)
+
+nokekoi_ti_buffer_boundary$poly_type <- c(
+  "TI",
+  "Buffer 10 KM"
+)
+
+## Get fire data
+# Set boundary box area
+xmin <- -72.5
+ymin <- -8.1
+xmax <- -72
+ymax <- -7.6
+
+area_cords <- c(
+  xmin,ymin,xmax,ymax
+)
+
+area <- paste(
+  area_cords,
+  sep = ",",
+  collapse = ","
+)
+
+# Get Fire Data from FIRMS API
+
+get_fire_data <- function(
+    main_url,
+    map_key,
+    source,
+    area,
+    day_range,
+    date){
+        url <- paste(
+          main_url,
+          map_key,
+          source,
+          area,
+          day_range,
+          date,
+          sep = "/"
+        )
+        
+    fire_data <- data.table::fread(url)
+    
+    return(fire_data)
+  
+}
+
+main_url <- "https://firms.modaps.eosdis.nasa.gov/api/area/csv"
+map_key <- "ff59d13ff69dcae8f5cf4c2625642ad7"
+source <- "VIIRS_SNPP_NRT"
+day_range <- 10
+date <- Sys.Date() - 11 
+
+fire_data <- get_fire_data(
+    main_url = main_url,
+    map_key = map_key,
+    source = source,
+    area = area,
+    day_range = day_range,
+    date = date
+)
+    
+fire_data$bright_ti4_c <- fire_data$bright_ti4 - 273.15
+
+# As sf objectf
+fire_data_sf <- st_as_sf(
+  fire_data,
+      coords = c("longitude", "latitude"),
+      crs = 4326
+) 
+
+# Count hot pixels by area
+ti_fire_points <- lengths(
+  st_intersects(
+    nokekoi_ti,
+    st_as_sf(
+      fire_data,
+      coords = c("longitude", "latitude"),
+      crs = 4326
+    )
+  )
+)
+
+buffer_fire_points <- lengths(
+  st_intersects(
+    nokekoi_ti_buffer,
+    st_as_sf(
+      fire_data,
+      coords = c("longitude", "latitude"),
+      crs = 4326
+    )
+  )
+)
+
+format(as.Date(Sys.Date()),"%d-%m-%Y")
+
+## Get deforestation data
+
+# Load RADD Deforestation alerts
+
+# RaadAlerts <- rast("https://data-api.globalforestwatch.org/dataset/gfw_integrated_alerts/latest/download/geotiff?grid=10/100000&tile_id=00N_080W&pixel_meaning=date_conf&x-api-key=2d60cd88-8348-4c0f-a6d5-bd9adb585a8c")
+
+raddAlerts <- read_stars("G:/My Drive/R_Scripts/NokeKoi_Project/nokekoi_project/20230925_00N_080W.tif")
+
+# Crop to study area
+extent <- st_bbox(
+    nokekoi_ti_buffer
+
+)
+
+raddAlerts <- st_crop(
+  raddAlerts, extent
+
+)
+
+# Process deforestation alerts data
+
+raddAlerts_sf <- st_as_sf(
+  raddAlerts
+)
+
+raddAlerts_sf <- raddAlerts %>%
+  st_as_sf() %>%
+  rename("raddencode" = 1) %>%
+  mutate(v_id = substr(raddencode, 1,1)) %>%
+  mutate(date = substr(raddencode, 2,10)) %>%
+  mutate(date = as.Date(
+    as.numeric(date),
+    origin = "2014-12-31"
+  )) %>%
+  filter(date >= as.Date("2023-01-01")) %>%
+  group_by(date) %>% 
+  summarize()
+
+# Deforestation in TI and TI 10 km buffer
+ti_def <- raddAlerts_sf %>% 
+  st_intersection(nokekoi_ti) %>%
+  st_transform(crs = proj_area)
+
+ti_def <- ti_def %>%
+  mutate(def_area = st_area(ti_def)) %>%
+  mutate(
+    def_area = units::set_units(
+      def_area, 
+      value = ha
+    )
+  ) %>%
+  st_transform(crs = epsg_4326)
+
+ti_def_area <- ti_def %>%
+  select(def_area) %>%
+  mutate(geometry = NULL)
+  
+ti_def_area <- round(
+  as.numeric(
+    sum(
+      ti_def_area$def_area
+    )
+  ), 0
+)
+
+amort_def <- raddAlerts_sf %>% 
+  st_intersection(nokekoi_ti_buffer) %>%
+  st_transform(crs = proj_area)
+
+amort_def <- amort_def %>%
+  mutate(def_area = st_area(amort_def)) %>%
+  mutate(
+    def_area = units::set_units(
+      def_area, 
+      value = ha
+    )
+  ) %>%
+  st_transform(crs = epsg_4326)
+
+amort_def_area <- amort_def %>%
+  select(def_area) %>%
+  mutate(geometry = NULL)
+  
+amort_def_area <- round(
+  as.numeric(
+    sum(
+      amort_def_area$def_area
+    )
+  ), 0
+)
+
+```
+
+# Descrição do Projeto e dos Dados {.sidebar data-width="300"}
+
+Essa página web tem o propósito de divulgar os dados produzidos no âmbito do Projeto **Sistema de Monitoramento Precoce de Invasões da Terra Indígena Campinas/Katukina**, desenvolvido pela [Universidade Federal do Acre]() com apoio financeiro da [Transmissora Acre SPE S.A.](https://www.zenergiabr.com.br/subestacao/transmissora-acre). A página será atualizada nos dias 10, 20 e 30 de cada mês.
+
+Os dados de focos de calor são provenientes do **Sensor VIIRS**, [produto fogo ativo](https://www.earthdata.nasa.gov/learn/find-data/near-real-time/firms/viirs-i-band-375-m-active-fire-data), resolução espacial de 375 m , que disponibiliza os dados para os últimos 10 dias. Para desmatamento foram usados os dados do [RADD Forest Disturbance Alerts](https://data.globalforestwatch.org/datasets/gfw::deforestation-alerts-radd/about) que usa dados de radar da missão Sentinel-1 para mapear alterações da cobertura florestal com resolução espacial de 10 m e resolução de temporal 6 a 12 dias.
+
+Fonte dos dados: Focos de calor foram disponiblilizados pela **NASA** [Fire Information for Resource Management System](https://firms.modaps.eosdis.nasa.gov/active_fire/) (FIRMS). Alertas de desmatamento conforme, Reiche J, Mullissa A, Slagter B, Gou Y, Tsendbazar N, Odongo-Braun C, Vollrath A, Weisse M, Stolle F, Pickens A, Donchyts G, Clinton N, Gorelick N & Herold M, (2021), Forest disturbance alerts for the Congo Basin using Sentinel-1, Environmental Research Letters, <https://doi.org/10.1088/1748-9326/abd0a8>.
+
+Desenvolvido por: [Laboratório de Geoprocessamento APlicado ao Meio Ambiente](https://www.ufac.br/labgama), [UFAC Campus Floresta](https://www.ufac.br/floresta).
+
+Equipe: [Dr. A. Willian Flores de Melo](https://lattes.cnpq.br/9339997282776018), [Dra. Sonaira Silva](http://lattes.cnpq.br/7877159779121386), [Dr. Igor Oliveira](http://lattes.cnpq.br/2419895860496067) e [Henrique Melo](http://lattes.cnpq.br/4776096577200930).
+
+# Ocorrência de Queimadas
+
+## Row
+
+### Focos de calor na TI {.value-box}
+
+```{r}
+
+
+  valueBox(
+  ti_fire_points,
+  icon = "fa-fire",
+  color = ifelse(ti_fire_points > 10, "danger", "warning")
+)
+
+
+```
+
+### Focos de calor na área de amortecimento {.value-box}
+
+```{r}
+
+
+  valueBox(
+  buffer_fire_points,
+  icon = "fa-fire",
+  color = ifelse(buffer_fire_points > 20, "danger", "warning")
+)
+
+
+```
+
+## Row
+
+### Registro de ocorrência de focos de calor - últimos 10 dias [`r format(as.Date(Sys.Date()-10),"%d/%m/%Y")` - `r format(as.Date(Sys.Date()),"%d/%m/%Y")`]
+
+```{r}
+
+  leaflet() %>%
+    addProviderTiles("Esri.WorldImagery") %>%
+    fitBounds(
+      xmin,
+      ymin,
+      xmax,
+      ymax
+    ) %>%
+    addMapPane("ames_polygons", zIndex = 410) %>% 
+    addMapPane("ames_points", zIndex = 420) %>% 
+    addCircleMarkers(
+      data = st_join(
+        fire_data_sf,
+        nokekoi_ti
+      ) %>% 
+        filter(
+          !is.na(epsg)
+        ),
+      group = "Focos de calor na TI",
+      popup = format(
+        as.Date(date),
+        "%d-%m-%Y"
+      ),
+      color = "#FF6666",
+      stroke = FALSE, 
+      fillOpacity = 0.8, 
+      radius = 5,
+      options = pathOptions(pane = "ames_points")
+    ) %>%
+    addCircleMarkers(
+      data = st_join(
+        fire_data_sf,
+        nokekoi_ti_buffer
+      ) %>% 
+        filter(
+          !is.na(epsg)
+        ),
+      group = "Focos de calor na área de amortecimento",
+      popup = format(
+        as.Date(date),
+        "%d-%m-%Y"
+      ),
+      color = "red",
+      stroke = FALSE, 
+      fillOpacity = 0.8, 
+      radius = 5,
+      options = pathOptions(pane = "ames_points")
+    ) %>%
+    addPolygons(
+      data = nokekoi_ti,
+      group = "Limites da TI",
+      color = "#444444",
+      weight = 1,
+      smoothFactor = 0.5,
+      opacity = 1.0, 
+      fillOpacity = 0.3,
+      fillColor = "#CBD5C0",
+      highlightOptions = highlightOptions(
+        color = "white",
+        weight = 2,
+        bringToFront = T
+      ),
+      options = pathOptions(pane = "ames_polygons")
+    ) %>%
+    addPolygons(
+      data = nokekoi_ti_buffer,
+      group = "Limites da área de amortecimento",
+      color = "#444444",
+      weight = 1,
+      smoothFactor = 0.5,
+      opacity = 1.0, 
+      fillOpacity = 0.3,
+      fillColor = "#ffb38a",
+      highlightOptions = highlightOptions(
+        color = "white",
+        weight = 2,
+        bringToFront = T
+      ),
+      options = pathOptions(pane = "ames_polygons")
+    ) %>%
+    addLayersControl(
+      overlayGroups = c(
+        "Limites da TI",
+        "Limites da área de amortecimento",
+        "Focos de calor na TI",
+        "Focos de calor na área de amortecimento"
+      ),
+      options = layersControlOptions(
+        collapsed = T
+      )
+    ) %>%
+    addLegend(
+      "bottomright",
+      pal = colorFactor(
+        c(
+          "red",
+          "#FF6666"
+        ),
+        domain = c(
+        "Focos de calor na TI",
+        "Focos de calor na área de amortecimento"
+        )
+      ),
+      
+      values = c(
+        "Focos de calor na TI",
+        "Focos de calor na área de amortecimento"
+      ),
+      opacity = c(0.8, 0.8)
+    )
+
+```
+
+# Ocorrência de Desmatamento
+
+## Row
+
+### Área de alertas de desmatamento na TI {.value-box}
+
+```{r}
+
+
+  valueBox(
+  paste(ti_def_area, " ha"),
+  icon = "fa-tree",
+  color = ifelse(ti_fire_points > 10, "danger", "warning")
+)
+
+
+```
+
+### Área de alertas de desmatamento na área de amortecimento {.value-box}
+
+```{r}
+
+
+  valueBox(
+  paste(amort_def_area, " ha"),
+  icon = "fa-tree",
+  color = ifelse(buffer_fire_points > 20, "danger", "warning")
+)
+
+
+```
+
+## Row
+
+### Registro de ocorrência de alertas de desmatamento no ano de 2023 [01/01/2023 - `r format(as.Date(Sys.Date()),"%d/%m/%Y")`]
+
+```{r}
+
+  leaflet() %>%
+   addProviderTiles("Esri.WorldImagery") %>%
+    fitBounds(
+      xmin,
+      ymin,
+      xmax,
+      ymax
+    ) %>%
+    addMapPane("ames_polygons", zIndex = 410) %>%
+    addMapPane("ames_points", zIndex = 420) %>%
+    addPolygons(
+      data = ti_def,
+      group = "Focos de calor na TI",
+      popup = format(
+        as.Date(date),
+        "%d-%m-%Y"
+      ),
+      color = "#FF6666 ",
+      weight = 1,
+      smoothFactor = 0.5,
+      opacity = 1.0,
+      fillOpacity = 0.8,
+      fillColor = "#FF6666",
+      options = pathOptions(pane = "ames_points")
+    ) %>%
+    addPolygons(
+      data = amort_def,
+      group = "Focos de calor na área de amortecimento",
+      popup = format(
+          as.Date(date),
+          "%d-%m-%Y"
+      ),
+      color = "red",
+      weight = 1,
+      smoothFactor = 0.5,
+      opacity = 1.0,
+      fillOpacity = 0.8,
+      fillColor = "red",
+      options = pathOptions(pane = "ames_points")
+    ) %>%
+    addPolygons(
+      data = nokekoi_ti,
+      group = "Limites da TI",
+      color = "#444444",
+      weight = 1,
+      smoothFactor = 0.5,
+      opacity = 1.0,
+      fillOpacity = 0.3,
+      fillColor = "#CBD5C0",
+      highlightOptions = highlightOptions(
+        color = "white",
+        weight = 2,
+        bringToFront = T
+      ),
+      options = pathOptions(pane = "ames_polygons")
+    ) %>%
+    addPolygons(
+      data = nokekoi_ti_buffer,
+      group = "Limites da área de amortecimento",
+      color = "#444444",
+      weight = 0,
+      smoothFactor = 0.5,
+      opacity = 1.0,
+      fillOpacity = 0.3,
+      fillColor = "#ffb38a",
+      highlightOptions = highlightOptions(
+        color = "white",
+        weight = 2,
+        bringToFront = T
+      ),
+      options = pathOptions(pane = "ames_polygons")
+    ) %>%
+    addLayersControl(
+      overlayGroups = c(
+        "Limites da TI",
+        "Limites da área de amortecimento",
+        "Focos de calor na TI",
+        "Focos de calor na área de amortecimento"
+      ),
+      options = layersControlOptions(
+        collapsed = T
+      )
+    ) %>%
+    addLegend(
+      "bottomright",
+      pal = colorFactor(
+        c(
+          "red",
+          "#FF6666"
+        ),
+        domain = c(
+        "Alertas de desmatamento na TI",
+        "Alertas de desmatamento na área de amortecimento"
+        )
+      ),
+
+      values = c(
+        "Alertas de desmatamento na TI",
+        "Alertas de desmatamento na área de amortecimento"
+      ),
+      opacity = c(0.8, 0.8)
+    )
+
+```
