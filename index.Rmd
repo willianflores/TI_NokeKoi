@@ -2,6 +2,7 @@
 title: "Monitoramento de Queimadas e Desmatamento: TI Campinas/Katukina"
 output: 
   flexdashboard::flex_dashboard:
+    social: [ "twitter", "facebook", "linkedin" ]
     orientation: rows
     vertical_layout: fill
     theme:
