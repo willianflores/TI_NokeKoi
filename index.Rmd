@@ -17,7 +17,7 @@ output:
 # List of packages for session
 .packages = c("flexdashboard","shiny","leaps","jsonlite","maptools","ggplot2"
               ,"tidyverse","purrr","leaflet","plotly", "data.table","lubridate"
-              ,"sf", "DBI", "RPostgreSQL", "geojsonsf", "stars")
+              ,"sf", "DBI", "RPostgreSQL", "geojsonsf", "stars", "keyring")
 
 # Install CRAN packages (if not already installed)
 .inst <- .packages %in% installed.packages()
@@ -32,15 +32,14 @@ epsg_4326 = st_crs(4326)
 proj_area = st_crs("+proj=aea +lat_1=10 +lat_2=-40 +lat_0=-25 +lon_0=-50 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs ")
 proj_dist = st_crs("EPSG:5880")
 
-
 # DB Conection
 con <- RPostgreSQL::dbConnect(
-  "PostgreSQL",
-  host     = "localhost",
-  port     = 5432, 
-  dbname   = "db_environmentalinfo",
-  user     = "willianflores",
-  password = "soil7525"
+  drv      = key_get("PG_DRV"),
+  host     = key_get("PG_HOST"),
+  port     = key_get("PG_PORT"), 
+  dbname   = key_get("PG_DBNAME"),
+  user     = key_get("PG_USER"),
+  password = key_get("PG_PASSWORD")
 
 )
 
