@@ -177,7 +177,7 @@ format(as.Date(Sys.Date()),"%d-%m-%Y")
 
 # RaadAlerts <- rast("https://data-api.globalforestwatch.org/dataset/gfw_integrated_alerts/latest/download/geotiff?grid=10/100000&tile_id=00N_080W&pixel_meaning=date_conf&x-api-key=2d60cd88-8348-4c0f-a6d5-bd9adb585a8c")
 
-raddAlerts <- read_stars("G:/My Drive/R_Scripts/NokeKoi_Project/nokekoi_project/20230925_00N_080W.tif")
+raddAlerts <- read_stars("H:/My Drive/UFAC/Projetos/Monitoramento_Invasoes_TI_Campinas_Katukina/DataBase/Raster/RADD/20230928_00N_080W.tif")
 
 # Crop to study area
 extent <- st_bbox(
@@ -266,15 +266,15 @@ amort_def_area <- round(
 
 # Descrição do Projeto e dos Dados {.sidebar data-width="300"}
 
-Essa página web tem o propósito de divulgar os dados produzidos no âmbito do Projeto **Sistema de Monitoramento Precoce de Invasões da Terra Indígena Campinas/Katukina**, desenvolvido pela [Universidade Federal do Acre]() com apoio financeiro da [Transmissora Acre SPE S.A.](https://www.zenergiabr.com.br/subestacao/transmissora-acre). A página será atualizada nos dias 10, 20 e 30 de cada mês.
+Essa página web tem o propósito de divulgar os dados produzidos no âmbito do Projeto **Sistema de Monitoramento Precoce de Invasões da Terra Indígena Campinas/Katukina**, desenvolvido pela [Universidade Federal do Acre](https://www.ufac.br/){target="_blank"} com apoio financeiro da [Transmissora Acre SPE S.A.](https://www.zenergiabr.com.br/subestacao/transmissora-acre){target="_blank"}. A página será atualizada nos dias 10, 20 e 30 de cada mês.
 
-Os dados de focos de calor são provenientes do **Sensor VIIRS**, [produto fogo ativo](https://www.earthdata.nasa.gov/learn/find-data/near-real-time/firms/viirs-i-band-375-m-active-fire-data), resolução espacial de 375 m , que disponibiliza os dados para os últimos 10 dias. Para desmatamento foram usados os dados do [RADD Forest Disturbance Alerts](https://data.globalforestwatch.org/datasets/gfw::deforestation-alerts-radd/about) que usa dados de radar da missão Sentinel-1 para mapear alterações da cobertura florestal com resolução espacial de 10 m e resolução de temporal 6 a 12 dias.
+Os dados de focos de calor são provenientes do **Sensor VIIRS**, [produto fogo ativo](https://www.earthdata.nasa.gov/learn/find-data/near-real-time/firms/viirs-i-band-375-m-active-fire-data){target="_blank"}, resolução espacial de 375 m , que disponibiliza os dados para os últimos 10 dias. Para desmatamento foram usados os dados do [RADD Forest Disturbance Alerts](https://data.globalforestwatch.org/datasets/gfw::deforestation-alerts-radd/about){target="_blank"} que usa dados de radar da missão Sentinel-1 para mapear alterações da cobertura florestal com resolução espacial de 10 m e resolução de temporal 6 a 12 dias.
 
-Fonte dos dados: Focos de calor foram disponiblilizados pela **NASA** [Fire Information for Resource Management System](https://firms.modaps.eosdis.nasa.gov/active_fire/) (FIRMS). Alertas de desmatamento conforme, Reiche J, Mullissa A, Slagter B, Gou Y, Tsendbazar N, Odongo-Braun C, Vollrath A, Weisse M, Stolle F, Pickens A, Donchyts G, Clinton N, Gorelick N & Herold M, (2021), Forest disturbance alerts for the Congo Basin using Sentinel-1, Environmental Research Letters, <https://doi.org/10.1088/1748-9326/abd0a8>.
+Fonte dos dados: Focos de calor foram disponiblilizados pela **NASA** [Fire Information for Resource Management System](https://firms.modaps.eosdis.nasa.gov/active_fire/){target="_blank"} (FIRMS). Alertas de desmatamento conforme, Reiche J, Mullissa A, Slagter B, Gou Y, Tsendbazar N, Odongo-Braun C, Vollrath A, Weisse M, Stolle F, Pickens A, Donchyts G, Clinton N, Gorelick N & Herold M, (2021), Forest disturbance alerts for the Congo Basin using Sentinel-1, Environmental Research Letters, [https://doi.org/10.1088/1748-9326/abd0a8](https://doi.org/10.1088/1748-9326/abd0a8){target="_blank"}.
 
-Desenvolvido por: [Laboratório de Geoprocessamento APlicado ao Meio Ambiente](https://www.ufac.br/labgama), [UFAC Campus Floresta](https://www.ufac.br/floresta).
+Desenvolvido por: [Laboratório de Geoprocessamento APlicado ao Meio Ambiente](https://www.ufac.br/labgama){target="_blank"}, [UFAC Campus Floresta](https://www.ufac.br/floresta){target="_blank"}.
 
-Equipe: [Dr. A. Willian Flores de Melo](https://lattes.cnpq.br/9339997282776018), [Dra. Sonaira Silva](http://lattes.cnpq.br/7877159779121386), [Dr. Igor Oliveira](http://lattes.cnpq.br/2419895860496067) e [Henrique Melo](http://lattes.cnpq.br/4776096577200930).
+Equipe: [Dr. A. Willian Flores de Melo](https://lattes.cnpq.br/9339997282776018), [Dra. Sonaira Silva](http://lattes.cnpq.br/7877159779121386), [Dr. Igor Oliveira](http://lattes.cnpq.br/2419895860496067){target="_blank"} e [Henrique Melo](http://lattes.cnpq.br/4776096577200930){target="_blank"}.
 
 # Ocorrência de Queimadas
 
@@ -515,7 +515,7 @@ Equipe: [Dr. A. Willian Flores de Melo](https://lattes.cnpq.br/9339997282776018)
       fillOpacity = 0.3,
       fillColor = "#CBD5C0",
       highlightOptions = highlightOptions(
-        color = "white",
+        color = "white", 
         weight = 2,
         bringToFront = T
       ),
