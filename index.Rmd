@@ -123,7 +123,7 @@ get_fire_data <- function(
 }
 
 main_url <- "https://firms.modaps.eosdis.nasa.gov/api/area/csv"
-map_key <- "ff59d13ff69dcae8f5cf4c2625642ad7"
+map_key <- key_get("FIRMS_KEY")
 source <- "VIIRS_SNPP_NRT"
 day_range <- 10
 date <- Sys.Date() - 11 
