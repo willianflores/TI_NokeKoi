@@ -75,6 +75,9 @@ nokekoi_ti_buffer_boundary <- rbind(
   select(nokekoi_ti_buffer, 1:19, 39 )
 )
 
+controid_ti <- st_centroid(nokekoi_ti_buffer) %>%
+  st_coordinates()
+
 nokekoi_ti_buffer_boundary$poly_type <- c(
   "TI",
   "Buffer 10 KM"
@@ -146,8 +149,25 @@ fire_data_sf <- st_as_sf(
       crs = 4326
 ) 
 
+ti_fire_points <- st_join(
+  fire_data_sf,
+  nokekoi_ti
+) %>%
+  filter(
+    !is.na(epsg)
+)
+
+buffer_fire_points <- st_join(
+  fire_data_sf,
+  nokekoi_ti_buffer
+) %>%
+  filter(
+    !is.na(epsg)
+)
+
+
 # Count hot pixels by area
-ti_fire_points <- lengths(
+ti_fire_points_leng <- lengths(
   st_intersects(
     nokekoi_ti,
     st_as_sf(
@@ -158,7 +178,7 @@ ti_fire_points <- lengths(
   )
 )
 
-buffer_fire_points <- lengths(
+buffer_fire_points_leng <- lengths(
   st_intersects(
     nokekoi_ti_buffer,
     st_as_sf(
@@ -177,7 +197,10 @@ format(as.Date(Sys.Date()),"%d-%m-%Y")
 
 # RaadAlerts <- rast("https://data-api.globalforestwatch.org/dataset/gfw_integrated_alerts/latest/download/geotiff?grid=10/100000&tile_id=00N_080W&pixel_meaning=date_conf&x-api-key=2d60cd88-8348-4c0f-a6d5-bd9adb585a8c")
 
-raddAlerts <- read_stars("H:/My Drive/UFAC/Projetos/Monitoramento_Invasoes_TI_Campinas_Katukina/DataBase/Raster/RADD/20230928_00N_080W.tif")
+raddAlerts <- read_stars(
+  "H:/My Drive/UFAC/Projetos/Monitoramento_Invasoes_TI_Campinas_Katukina/DataBase/Raster/RADD/20231010_00N_080W.tif"
+  
+)
 
 # Crop to study area
 extent <- st_bbox(
@@ -187,13 +210,14 @@ extent <- st_bbox(
 
 raddAlerts <- st_crop(
   raddAlerts, extent
-
+  
 )
 
 # Process deforestation alerts data
 
 raddAlerts_sf <- st_as_sf(
   raddAlerts
+  
 )
 
 raddAlerts_sf <- raddAlerts %>%
@@ -286,9 +310,9 @@ Equipe: [Dr. A. Willian Flores de Melo](https://lattes.cnpq.br/9339997282776018)
 
 
   valueBox(
-  ti_fire_points,
+  ti_fire_points_leng,
   icon = "fa-fire",
-  color = ifelse(ti_fire_points > 10, "danger", "warning")
+  color = ifelse(ti_fire_points_leng > 10, "danger", "warning")
 )
 
 
@@ -300,9 +324,9 @@ Equipe: [Dr. A. Willian Flores de Melo](https://lattes.cnpq.br/9339997282776018)
 
 
   valueBox(
-  buffer_fire_points,
+  buffer_fire_points_leng,
   icon = "fa-fire",
-  color = ifelse(buffer_fire_points > 20, "danger", "warning")
+  color = ifelse(buffer_fire_points_leng > 20, "danger", "warning")
 )
 
 
@@ -316,25 +340,18 @@ Equipe: [Dr. A. Willian Flores de Melo](https://lattes.cnpq.br/9339997282776018)
 
   leaflet() %>%
     addProviderTiles("Esri.WorldImagery") %>%
-    fitBounds(
-      xmin,
-      ymin,
-      xmax,
-      ymax
+    setView(
+      lng = -72.18981, 
+      lat = -7.79476, 
+      zoom = 11
     ) %>%
     addMapPane("ames_polygons", zIndex = 410) %>% 
     addMapPane("ames_points", zIndex = 420) %>% 
     addCircleMarkers(
-      data = st_join(
-        fire_data_sf,
-        nokekoi_ti
-      ) %>% 
-        filter(
-          !is.na(epsg)
-        ),
+      data = ti_fire_points,
       group = "Focos de calor na TI",
       popup = format(
-        as.Date(date),
+        as.Date(ti_fire_points$acq_date),
         "%d-%m-%Y"
       ),
       color = "#FF6666",
@@ -344,16 +361,10 @@ Equipe: [Dr. A. Willian Flores de Melo](https://lattes.cnpq.br/9339997282776018)
       options = pathOptions(pane = "ames_points")
     ) %>%
     addCircleMarkers(
-      data = st_join(
-        fire_data_sf,
-        nokekoi_ti_buffer
-      ) %>% 
-        filter(
-          !is.na(epsg)
-        ),
+      data = buffer_fire_points,
       group = "Focos de calor na área de amortecimento",
       popup = format(
-        as.Date(date),
+        as.Date(buffer_fire_points$acq_date),
         "%d-%m-%Y"
       ),
       color = "red",
@@ -439,7 +450,7 @@ Equipe: [Dr. A. Willian Flores de Melo](https://lattes.cnpq.br/9339997282776018)
   valueBox(
   paste(ti_def_area, " ha"),
   icon = "fa-tree",
-  color = ifelse(ti_fire_points > 10, "danger", "warning")
+  color = ifelse(ti_def_area > 10, "danger", "warning")
 )
 
 
@@ -453,7 +464,7 @@ Equipe: [Dr. A. Willian Flores de Melo](https://lattes.cnpq.br/9339997282776018)
   valueBox(
   paste(amort_def_area, " ha"),
   icon = "fa-tree",
-  color = ifelse(buffer_fire_points > 20, "danger", "warning")
+  color = ifelse(amort_def_area > 20, "danger", "warning")
 )
 
 
@@ -467,11 +478,10 @@ Equipe: [Dr. A. Willian Flores de Melo](https://lattes.cnpq.br/9339997282776018)
 
   leaflet() %>%
    addProviderTiles("Esri.WorldImagery") %>%
-    fitBounds(
-      xmin,
-      ymin,
-      xmax,
-      ymax
+    setView(
+      lng = -72.18981, 
+      lat = -7.79476, 
+      zoom = 11
     ) %>%
     addMapPane("ames_polygons", zIndex = 410) %>%
     addMapPane("ames_points", zIndex = 420) %>%
@@ -479,7 +489,7 @@ Equipe: [Dr. A. Willian Flores de Melo](https://lattes.cnpq.br/9339997282776018)
       data = ti_def,
       group = "Focos de calor na TI",
       popup = format(
-        as.Date(date),
+        as.Date(ti_def$date),
         "%d-%m-%Y"
       ),
       color = "#FF6666 ",
@@ -494,7 +504,7 @@ Equipe: [Dr. A. Willian Flores de Melo](https://lattes.cnpq.br/9339997282776018)
       data = amort_def,
       group = "Focos de calor na área de amortecimento",
       popup = format(
-          as.Date(date),
+          as.Date(amort_def$date),
           "%d-%m-%Y"
       ),
       color = "red",
