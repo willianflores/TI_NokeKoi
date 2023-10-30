@@ -198,7 +198,7 @@ format(as.Date(Sys.Date()),"%d-%m-%Y")
 # RaadAlerts <- rast("https://data-api.globalforestwatch.org/dataset/gfw_integrated_alerts/latest/download/geotiff?grid=10/100000&tile_id=00N_080W&pixel_meaning=date_conf&x-api-key=2d60cd88-8348-4c0f-a6d5-bd9adb585a8c")
 
 raddAlerts <- read_stars(
-  "H:/My Drive/UFAC/Projetos/Monitoramento_Invasoes_TI_Campinas_Katukina/DataBase/Raster/RADD/20231026_00N_080W.tif"
+  "H:/My Drive/UFAC/Projetos/Monitoramento_Invasoes_TI_Campinas_Katukina/DataBase/Raster/RADD/20231030_00N_080W.tif"
   
 )
 
