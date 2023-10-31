@@ -497,7 +497,7 @@ Equipe: [Dr. A. Willian Flores de Melo](https://lattes.cnpq.br/9339997282776018)
     addMapPane("ames_points", zIndex = 420) %>%
     addPolygons(
       data = ti_def,
-      group = "Focos de calor na TI",
+      group = "Alertas de desmatamento na TI",
       popup = format(
         as.Date(ti_def$date),
         "%d-%m-%Y"
@@ -512,7 +512,7 @@ Equipe: [Dr. A. Willian Flores de Melo](https://lattes.cnpq.br/9339997282776018)
     ) %>%
     addPolygons(
       data = amort_def,
-      group = "Focos de calor na área de amortecimento",
+      group = "Alertas de desmatamento na área de amortecimento",
       popup = format(
           as.Date(amort_def$date),
           "%d-%m-%Y"
@@ -561,8 +561,8 @@ Equipe: [Dr. A. Willian Flores de Melo](https://lattes.cnpq.br/9339997282776018)
       overlayGroups = c(
         "Limites da TI",
         "Limites da área de amortecimento",
-        "Focos de calor na TI",
-        "Focos de calor na área de amortecimento"
+        "Alertas de desmatamento na TI",
+        "Alertas de desmatamento na área de amortecimento"
       ),
       options = layersControlOptions(
         collapsed = T
