@@ -19,9 +19,9 @@ output:
               ,"tidyverse","purrr","leaflet","plotly", "data.table","lubridate"
               ,"sf", "DBI", "RPostgreSQL", "geojsonsf", "stars", "keyring")
 
-# Install CRAN packages (if not already installed)
-.inst <- .packages %in% installed.packages()
-if(length(.packages[!.inst]) > 0) install.packages(.packages[!.inst])
+# # Install CRAN packages (if not already installed)
+# .inst <- .packages %in% installed.packages()
+# if(length(.packages[!.inst]) > 0) install.packages(.packages[!.inst], repos = #"http://cran.us.r-project.org")
 
 # Load packages into session 
 lapply(.packages, require, character.only=TRUE)
@@ -198,7 +198,7 @@ format(as.Date(Sys.Date()),"%d-%m-%Y")
 # RaadAlerts <- rast("https://data-api.globalforestwatch.org/dataset/gfw_integrated_alerts/latest/download/geotiff?grid=10/100000&tile_id=00N_080W&pixel_meaning=date_conf&x-api-key=2d60cd88-8348-4c0f-a6d5-bd9adb585a8c")
 
 raddAlerts <- read_stars(
-  "H:/My Drive/UFAC/Projetos/Monitoramento_Invasoes_TI_Campinas_Katukina/DataBase/Raster/RADD/20231214_00N_080W.tif"
+  "H:/My Drive/UFAC/Projetos/Monitoramento_Invasoes_TI_Campinas_Katukina/DataBase/Raster/RADD/20240130_00N_080W.tif"
   
 )
 
@@ -229,7 +229,7 @@ raddAlerts_sf <- raddAlerts %>%
     as.numeric(date),
     origin = "2014-12-31"
   )) %>%
-  filter(date >= as.Date("2023-01-01")) %>%
+  filter(date >= as.Date("2024-01-01")) %>%
   group_by(date) %>% 
   summarize()
 
@@ -306,7 +306,7 @@ Os dados de focos de calor são provenientes do **Sensor VIIRS**, [produto fogo 
 
 Fonte dos dados: Focos de calor foram disponiblilizados pela **NASA** [Fire Information for Resource Management System](https://firms.modaps.eosdis.nasa.gov/active_fire/){target="_blank"} (FIRMS). Alertas de desmatamento conforme, Reiche J, Mullissa A, Slagter B, Gou Y, Tsendbazar N, Odongo-Braun C, Vollrath A, Weisse M, Stolle F, Pickens A, Donchyts G, Clinton N, Gorelick N & Herold M, (2021), Forest disturbance alerts for the Congo Basin using Sentinel-1, Environmental Research Letters, [https://doi.org/10.1088/1748-9326/abd0a8](https://doi.org/10.1088/1748-9326/abd0a8){target="_blank"}.
 
-Desenvolvido por: [Laboratório de Geoprocessamento APlicado ao Meio Ambiente](https://www.ufac.br/labgama){target="_blank"}, [UFAC Campus Floresta](https://www.ufac.br/floresta){target="_blank"}.
+Desenvolvido por: [Laboratório de Geoprocessamento Aplicado ao Meio Ambiente](https://www.ufac.br/labgama){target="_blank"}, [UFAC Campus Floresta](https://www.ufac.br/floresta){target="_blank"}.
 
 Equipe: [Dr. A. Willian Flores de Melo](https://lattes.cnpq.br/9339997282776018), [Dra. Sonaira Silva](http://lattes.cnpq.br/7877159779121386), [Dr. Igor Oliveira](http://lattes.cnpq.br/2419895860496067){target="_blank"} e [Henrique Melo](http://lattes.cnpq.br/4776096577200930){target="_blank"}.
 
@@ -482,7 +482,7 @@ Equipe: [Dr. A. Willian Flores de Melo](https://lattes.cnpq.br/9339997282776018)
 
 ## Row
 
-### Registro de ocorrência de alertas de desmatamento no ano de 2023 [01/01/2023 - `r format(as.Date(Sys.Date()),"%d/%m/%Y")`]
+### Registro de ocorrência de alertas de desmatamento no ano de 2024 [01/01/2024 - `r format(as.Date(Sys.Date()),"%d/%m/%Y")`]
 
 ```{r}
 
