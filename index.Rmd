@@ -19,9 +19,9 @@ output:
               ,"tidyverse","purrr","leaflet","plotly", "data.table","lubridate"
               ,"sf", "DBI", "RPostgreSQL", "geojsonsf", "stars", "keyring")
 
-# # Install CRAN packages (if not already installed)
-.inst <- .packages %in% installed.packages()
-if(length(.packages[!.inst]) > 0) install.packages(.packages[!.inst], repos = "http://cran.us.r-project.org")
+# # # Install CRAN packages (if not already installed)
+# .inst <- .packages %in% installed.packages()
+# if(length(.packages[!.inst]) > 0) install.packages(.packages[!.inst], repos = "http://cran.us.r-project.org")
 
 # Load packages into session 
 lapply(.packages, require, character.only=TRUE)
